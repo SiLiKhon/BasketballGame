@@ -1,10 +1,6 @@
 const MAX_VEL_X = 500;
-const MIN_VEL_X = 50;
-const ACC_X = 1500;
-const FRICTION = 20;
-const JUMP_MERCY = 120;
-const JUMP_DELAY = 250;
-const JUMP_POSTLAND_DELAY = 120;
+
+import CharacterController from "../utils/characterController.js";
 
 class MainScene extends Phaser.Scene {
     constructor() {
@@ -35,14 +31,17 @@ class MainScene extends Phaser.Scene {
         platforms.create(50, 200, 'ground');
         platforms.create(750, 170, 'ground');
 
-        this._player = this.physics.add.sprite(100, 450, 'dude').setScale(0.5, 0.5).refreshBody();;
+        this._player = this.physics.add.sprite(100, 450, 'dude').setScale(0.5, 0.5).refreshBody();
+        this._controller = new CharacterController(
+            this._player,
+            this.input.keyboard.addKeys("A,LEFT"),
+            this.input.keyboard.addKeys("D,RIGHT"),
+            this.input.keyboard.addKeys("W,UP,SPACE")
+        );
 
         this._player.setBounce(0.0);
         this._player.setCollideWorldBounds(true);
         this._player.body.maxVelocity.x = MAX_VEL_X;
-        this._player.jumpTimer = 0;
-        this._player.landingTimer = 0;
-        this._player.lastOnFloorTime = this.time.now;
     
         this.anims.create({
             key: 'left',
@@ -77,68 +76,10 @@ class MainScene extends Phaser.Scene {
         });
     
         this.physics.add.collider(this._player, platforms);
-    
-        this._cursors = this.input.keyboard.createCursorKeys();
-        this._jumpButton = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        this._aButton = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
-        this._dButton = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
-        this._wButton = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
     }
 
     update() {
-        if (this._player.body.onFloor()) {
-            this._player.lastOnFloorTime = this.time.now;
-        } else if (this.time.now - this._player.lastOnFloorTime > JUMP_MERCY) {
-            this._player.landingTimer = this.time.now;
-        }
-        if (
-            !this._cursors.left.isDown
-            && !this._cursors.right.isDown
-            && !this._aButton.isDown
-            && !this._dButton.isDown
-        ) {
-            this._player.setAccelerationX(0);
-
-            if (this._player.body.onFloor()) {
-                this._player.anims.play('turn');
-                if (Math.abs(this._player.body.velocity.x) > MIN_VEL_X) {
-                    this._player.setAccelerationX(-FRICTION * this._player.body.velocity.x);
-                } else {
-                    this._player.setVelocityX(0);
-                }
-            }
-        } else {
-            var abs_acc = this._player.body.onFloor() ? ACC_X : 0.25 * ACC_X;
-            if (this._cursors.left.isDown || this._aButton.isDown) {
-                if (this._player.body.onFloor()) this._player.anims.play('left', true);
-                this._player.setAccelerationX(-abs_acc);
-                if (Math.abs(this._player.body.velocity.x) < MIN_VEL_X) this._player.body.velocity.x = -MIN_VEL_X;
-            } else if (this._cursors.right.isDown || this._dButton.isDown) {
-                if (this._player.body.onFloor()) this._player.anims.play('right', true);
-                this._player.setAccelerationX(abs_acc);
-                if (Math.abs(this._player.body.velocity.x) < MIN_VEL_X) this._player.body.velocity.x = MIN_VEL_X;
-            }
-            if (this._player.body.onFloor() && this._player.body.velocity.x * this._player.body.acceleration.x < 0) {
-                var friction_dec = -FRICTION * this._player.body.velocity.x;
-                if (Math.abs(friction_dec) > Math.abs(this._player.body.acceleration.x)) {
-                    this._player.setAccelerationX(friction_dec);
-                }
-            }
-        }
-
-        if (
-            (this._cursors.up.isDown || this._jumpButton.isDown || this._wButton.isDown)
-            && this._player.jumpTimer < this.time.now
-            && this.time.now - this._player.lastOnFloorTime < JUMP_MERCY
-            && this.time.now - this._player.landingTimer > JUMP_POSTLAND_DELAY
-        ) {
-            this._player.setVelocityY(-1200);
-            this._player.jumpTimer = this.time.now + JUMP_DELAY;
-            this._player.anims.play(
-                this._player.body.velocity.x > MIN_VEL_X ?
-                "jumpRight" : (this._player.body.velocity.x < -MIN_VEL_X ? "jumpLeft" : "turn")
-            );
-        }
+        this._controller.update(this.time.now);
     }
 };
 
