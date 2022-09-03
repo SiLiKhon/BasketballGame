@@ -1,4 +1,4 @@
-const MAX_VEL_X = 500;
+const MAX_VEL_X = 700;
 
 import CharacterController from "../utils/characterController.js";
 

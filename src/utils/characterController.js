@@ -1,10 +1,14 @@
 const DEFAULTS = {
     minVelX: 50,
-    accX: 1500,
-    friction: 20,
+    accX: 2000,
+    airAccX: 1500,
+    friction: 40,
     jumpMercy: 120,
     jumpDelay: 250,
     jumpPostLandDelay: 120,
+    jumpAccFrames: 12,
+    jumpStartVelocity: 800,
+    jumpAddVelocity: 15,
 };
 
 class _CombinedKeys {
@@ -28,6 +32,7 @@ class CharacterController {
         this.lastOnFloorTime = 0;
         this.landingTimer = 0;
         this.jumpTimer = 0;
+        this.jumpCounter = 0;
 
         /* Checking for typos in provided options */
         var checkOptions = Object.assign({}, this.opts);
@@ -54,7 +59,7 @@ class CharacterController {
                 }
             }
         } else {
-            var abs_acc = this.character.body.onFloor() ? this.opts.accX : 0.25 * this.opts.accX;
+            var abs_acc = this.character.body.onFloor() ? this.opts.accX : this.opts.airAccX;
             if (this.left.isDown()) {
                 if (this.character.body.onFloor()) this.character.anims.play('left', true);
                 this.character.setAccelerationX(-abs_acc);
@@ -78,16 +83,28 @@ class CharacterController {
 
         if (
             this.jump.isDown()
-            && now > this.jumpTimer
+            && now > this.jumpTimer + this.opts.jumpDelay
             && now - this.lastOnFloorTime < this.opts.jumpMercy
             && now - this.landingTimer > this.opts.jumpPostLandDelay
         ) {
-            this.character.setVelocityY(-1200);
-            this.jumpTimer = now + this.opts.jumpDelay;
+            this.character.setVelocityY(-this.opts.jumpStartVelocity);
+            this.jumpTimer = now;
             this.character.anims.play(
                 this.character.body.velocity.x > this.opts.minVelX ?
                 "jumpRight" : (this.character.body.velocity.x < -this.opts.minVelX ? "jumpLeft" : "turn")
             );
+            this.jumpCounter = 1;
+        } else if (
+            this.jump.isDown()
+            && this.jumpCounter > 0
+            && this.jumpCounter < this.opts.jumpAccFrames
+        ) {
+            this.character.body.velocity.y -= this.opts.jumpAddVelocity * (
+                this.opts.jumpAccFrames - this.jumpCounter
+            );
+            this.jumpCounter += 1;
+        } else {
+            this.jumpCounter = 0;
         }
     }
 };
