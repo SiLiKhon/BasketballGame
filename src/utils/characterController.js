@@ -11,22 +11,13 @@ const DEFAULTS = {
     jumpAddVelocity: 15,
 };
 
-class _CombinedKeys {
-    constructor(keysObj) {
-        this.keysObj = keysObj;
-        this.keys = Object.getOwnPropertyNames(keysObj);
-    }
-
-    isDown() {
-        return this.keys.some((e) => { return this.keysObj[e].isDown; })
-    }
-};
+import { CombinedKeys } from './utils.js';
 
 class CharacterController {
     constructor(character, leftKeys, rightKeys, jumpKeys, options = {}) {
-        this.left = new _CombinedKeys(leftKeys);
-        this.right = new _CombinedKeys(rightKeys);
-        this.jump = new _CombinedKeys(jumpKeys);
+        this.left = new CombinedKeys(leftKeys);
+        this.right = new CombinedKeys(rightKeys);
+        this.jump = new CombinedKeys(jumpKeys);
         this.character = character;
         this.opts = Object.assign({}, DEFAULTS, options);
         this.lastOnFloorTime = 0;
